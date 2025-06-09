@@ -5,15 +5,18 @@ import random
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from nlp.intent_model import IntentClassifier
 from nlp.preprocessor import preprocess, lemmatize
+from nlp.ner import extract_city, replace_placeholders
 from scenarios.ads import get_random_ad
 from scenarios.dialogue_engine import load_dialogues, find_best_response, dialog_context
 from utils.spell_check import correct_text
 from dotenv import load_dotenv
 import os
 
-intent_model = IntentClassifier()
-intent_model.model, intent_model.vectorizer = None, None
 print("\n=== Инициализация бота ===")
+intent_model = IntentClassifier()
+intent_model.train()
+print("Модель обучена")
+
 dialogues = load_dialogues()
 print("=== Инициализация завершена ===\n")
 
@@ -24,6 +27,21 @@ def get_joke():
             if intent['tag'] == 'joke':
                 return random.choice(intent['responses'])
     return "Извините, у меня закончились шутки 😅"
+
+def get_intent_response(intent_tag, text):
+    """
+    Получает ответ для интента с учетом извлеченных сущностей
+    """
+    with open('data/intents.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+        for intent in data['intents']:
+            if intent['tag'] == intent_tag:
+                city = extract_city(text)
+                
+                response = random.choice(intent['responses'])
+                
+                return replace_placeholders(response, city)
+    return None
 
 async def start(update, context):
     await update.message.reply_text("Привет! Я помогу тебе найти лучшие авиабилеты ✈️")
@@ -41,18 +59,28 @@ async def handle_message(update, context):
     cleaned = preprocess(text)
     corrected = correct_text(cleaned)
     lemmatized = lemmatize(corrected)
+    
+    city = extract_city(text)
+    if city:
+        print(f"Извлеченный город: {city}")
+    
     intent = intent_model.predict(lemmatized)
+    print(f"Определенный интент: {intent}")
 
-    if intent == "buy_ticket":
-        dialog_context.update_context(user_id, 'awaiting_destination', True)
-        await update.message.reply_text("В какой город летим?")
-    elif intent == "greet":
+    if intent == "greet":
         await update.message.reply_text(random.choice([
             "Привет! Готов помочь с билетами!",
             "Здравствуйте! Куда летим сегодня?"
         ]))
+    elif intent == "buy_ticket":
+        dialog_context.update_context(user_id, 'awaiting_destination', True)
+        await update.message.reply_text("В какой город летим?")
     elif intent == "price_query":
-        await update.message.reply_text("Цена зависит от даты вылета и класса. Уточните, пожалуйста, дату и класс.")
+        if city:
+            response = get_intent_response(intent, text)
+            await update.message.reply_text(response)
+        else:
+            await update.message.reply_text("В какой город вы хотите узнать цены?")
     elif intent == "joke":
         await update.message.reply_text(get_joke())
     elif intent == "thanks":
@@ -67,6 +95,53 @@ async def handle_message(update, context):
             "Удачного дня и хороших перелётов!",
             "Всегда рад помочь!"
         ]))
+    elif intent == "flight_search":
+        if city:
+            response = get_intent_response(intent, text)
+            await update.message.reply_text(response)
+        else:
+            await update.message.reply_text("В какой город вы хотите полететь?")
+    elif intent == "weather_query":
+        if city:
+            response = get_intent_response(intent, text)
+            await update.message.reply_text(response)
+        else:
+            await update.message.reply_text("Для какого города вы хотите узнать погоду?")
+    elif intent == "flight_duration":
+        if city:
+            response = get_intent_response(intent, text)
+            if not response:
+                response = f"Время полета до {city} зависит от маршрута и типа самолета. В среднем это занимает от 2 до 8 часов."
+            await update.message.reply_text(response)
+        else:
+            await update.message.reply_text("До какого города вы хотите узнать время полета?")
+    elif intent == "flight_status":
+        response = get_intent_response(intent, text)
+        await update.message.reply_text(response)
+    elif intent == "luggage_info":
+        response = get_intent_response(intent, text)
+        await update.message.reply_text(response)
+    elif intent == "check_in":
+        response = get_intent_response(intent, text)
+        await update.message.reply_text(response)
+    elif intent == "discounts":
+        response = get_intent_response(intent, text)
+        await update.message.reply_text(response)
+    elif intent == "business_class":
+        response = get_intent_response(intent, text)
+        await update.message.reply_text(response)
+    elif intent == "help":
+        response = get_intent_response(intent, text)
+        await update.message.reply_text(response)
+    elif intent == "payment_issues":
+        response = get_intent_response(intent, text)
+        await update.message.reply_text(response)
+    elif intent == "airport_info":
+        response = get_intent_response(intent, text)
+        await update.message.reply_text(response)
+    elif intent == "additional_services":
+        response = get_intent_response(intent, text)
+        await update.message.reply_text(response)
     else:
         await update.message.reply_text("Не совсем понял вопрос. Можете переформулировать?")
 
@@ -89,5 +164,4 @@ def run_bot():
 
     print("Бот запущен...")
 
-    # Запускаем асинхронно
     application.run_polling()
