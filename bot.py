@@ -6,7 +6,7 @@ import random
 
 from dotenv import load_dotenv
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ContextTypes
 
 from data.flight_info import FlightInfo
@@ -95,14 +95,24 @@ def get_joke():
                 return random.choice(intent['responses'])
     return "Извините, у меня закончились шутки 😅"
 
-async def start(update, context):
+def get_menu_keyboard():
+    """Создает клавиатуру с основными командами"""
+    keyboard = [
+        [KeyboardButton("✈️ Бронирование"), KeyboardButton("📊 Статус рейса")],
+        [KeyboardButton("❓ Помощь"), KeyboardButton("ℹ️ Информация")]
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /start"""
+    user = update.effective_user
     await update.message.reply_text(
-        "Привет! Я помогу тебе найти лучшие авиабилеты ✈️\n"
-        "Ты можешь писать мне текстом или отправлять голосовые сообщения!\n\n"
-        "Доступные команды:\n"
-        "/book - Начать бронирование билета\n"
-        "/status - Статус рейса\n"
-        "/help - Показать справку"
+        f"👋 Привет, {user.first_name}!\n\n"
+        "Я бот для бронирования авиабилетов. "
+        "Я могу помочь вам с поиском и бронированием билетов, "
+        "проверкой статуса рейсов и другой информацией.\n\n"
+        "Используйте меню для навигации или введите /help для получения списка команд.",
+        reply_markup=get_menu_keyboard()
     )
 
 async def help_command(update, context):
@@ -172,12 +182,31 @@ async def handle_voice(update, context):
     
     await handle_message(update, context, text)
 
-async def handle_message(update, context, text=None):
-    """Обрабатывает текстовые сообщения"""
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE, text=None):
+    """Обработчик текстовых сообщений"""
     if text is None:
         text = update.message.text
-
     user_id = update.effective_user.id
+
+    if text == "✈️ Бронирование":
+        await book_command(update, context)
+        return
+    elif text == "📊 Статус рейса":
+        await status_command(update, context)
+        return
+    elif text == "❓ Помощь":
+        await help_command(update, context)
+        return
+    elif text == "ℹ️ Информация":
+        await update.message.reply_text(
+            "ℹ️ Информация о боте:\n\n"
+            "• Бронирование билетов\n"
+            "• Проверка статуса рейсов\n"
+            "• Информация о багаже\n"
+            "• Поддержка голосовых сообщений\n"
+            "• Умный поиск по разным запросам"
+        )
+        return
 
     if user_id in ticket_booking.booking_data:
         booking = ticket_booking.booking_data[user_id]
@@ -320,7 +349,7 @@ def run_bot():
         raise ValueError("TELEGRAM_BOT_TOKEN не найден в .env файле!")
 
     application = Application.builder().token(token).build()
-    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("book", book_command))
     application.add_handler(CommandHandler("status", status_command))
