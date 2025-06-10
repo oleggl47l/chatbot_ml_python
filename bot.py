@@ -6,9 +6,12 @@ import random
 
 from dotenv import load_dotenv
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
+from telegram import Update
+from telegram.ext import ContextTypes
 
 from data.flight_info import FlightInfo
 from data.ticket_booking import TicketBooking
+from data.flight_status import FlightStatus
 from nlp.casual_dialog import CasualDialogHandler
 from nlp.intent_model import IntentClassifier
 from nlp.ner import extract_city, replace_placeholders
@@ -30,6 +33,7 @@ dialogues = load_dialogues()
 flight_info = FlightInfo()
 speech_handler = SpeechHandler()
 ticket_booking = TicketBooking()
+flight_status = FlightStatus()
 print("=== Инициализация завершена ===\n")
 
 class TelegramBot:
@@ -97,6 +101,7 @@ async def start(update, context):
         "Ты можешь писать мне текстом или отправлять голосовые сообщения!\n\n"
         "Доступные команды:\n"
         "/book - Начать бронирование билета\n"
+        "/status - Статус рейса\n"
         "/help - Показать справку"
     )
 
@@ -104,6 +109,7 @@ async def help_command(update, context):
     await update.message.reply_text(
         "Я могу помочь вам с:\n"
         "• Поиском и бронированием билетов (/book)\n"
+        "• Поиском информации по выбранному рейсу (/status)\n"
         "• Информацией о рейсах и ценах\n"
         "• Правилами провоза багажа\n"
         "• Онлайн-регистрацией\n"
@@ -111,24 +117,44 @@ async def help_command(update, context):
         "Вы можете писать мне текстом или отправлять голосовые сообщения!"
     )
 
-async def book_command(update, context):
-    """Начинает процесс бронирования билета"""
+async def book_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /book"""
     user_id = update.effective_user.id
-    message, keyboard = ticket_booking.start_booking(user_id)
+    
+    ticket_booking.booking_data[user_id] = {
+        "step": "select_destination",
+        "data": {}
+    }
+    
+    message = "✈️ Выберите направление:"
+    keyboard = ticket_booking.get_booking_keyboard("select_destination", user_id)
     await update.message.reply_text(message, reply_markup=keyboard)
 
-async def handle_callback(update, context):
-    """Обрабатывает нажатия на интерактивные кнопки"""
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик нажатий на кнопки"""
     query = update.callback_query
     await query.answer()
     
     user_id = update.effective_user.id
-    message, keyboard = ticket_booking.process_callback(user_id, query.data)
-    
-    if keyboard:
-        await query.message.edit_text(message, reply_markup=keyboard)
-    else:
-        await query.message.edit_text(message)
+    callback_data = query.data
+
+    if user_id in ticket_booking.booking_data:
+        message, keyboard = ticket_booking.process_callback(callback_data, user_id)
+        if keyboard:
+            await query.edit_message_text(text=message, reply_markup=keyboard)
+        else:
+            await query.edit_message_text(text=message)
+        return
+
+    if callback_data.startswith("flight_"):
+        message, keyboard = flight_status.handle_callback(callback_data, user_id)
+        if keyboard:
+            await query.edit_message_text(text=message, reply_markup=keyboard)
+        else:
+            await query.edit_message_text(text=message)
+        return
+
+    await query.edit_message_text(text="Ошибка: неверный callback")
 
 async def handle_voice(update, context):
     """Обрабатывает голосовые сообщения"""
@@ -280,6 +306,13 @@ async def handle_message(update, context, text=None):
         await asyncio.sleep(1)
         await update.message.reply_text(get_random_ad())
 
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /status"""
+    user_id = update.effective_user.id
+    message = "✈️ Выберите рейс для просмотра информации:"
+    keyboard = flight_status.get_flight_keyboard(user_id)
+    await update.message.reply_text(message, reply_markup=keyboard)
+
 def run_bot():
     load_dotenv()
     token = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -290,6 +323,7 @@ def run_bot():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("book", book_command))
+    application.add_handler(CommandHandler("status", status_command))
     application.add_handler(CallbackQueryHandler(handle_callback))
     application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_voice))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))

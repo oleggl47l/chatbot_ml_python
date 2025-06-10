@@ -107,7 +107,7 @@ class TicketBooking:
         }
         return self.get_step_message("select_destination"), self.get_booking_keyboard("select_destination", user_id)
 
-    def process_callback(self, user_id, callback_data):
+    def process_callback(self, callback_data, user_id):
         """Обрабатывает callback от кнопок"""
         if user_id not in self.booking_data:
             return "Ошибка: сессия бронирования не найдена", None
