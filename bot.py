@@ -20,6 +20,7 @@ from scenarios.ads import get_random_ad
 from scenarios.dialogue_engine import load_dialogues, find_best_response
 from speech_handler import SpeechHandler
 from utils.spell_check import correct_text
+from handlers.buttons import ButtonHandler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,6 +35,7 @@ flight_info = FlightInfo()
 speech_handler = SpeechHandler()
 ticket_booking = TicketBooking()
 flight_status = FlightStatus()
+button_handler = ButtonHandler(ticket_booking, flight_status)
 print("=== Инициализация завершена ===\n")
 
 class TelegramBot:
@@ -112,7 +114,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Я могу помочь вам с поиском и бронированием билетов, "
         "проверкой статуса рейсов и другой информацией.\n\n"
         "Используйте меню для навигации или введите /help для получения списка команд.",
-        reply_markup=get_menu_keyboard()
+        reply_markup=button_handler.get_menu_keyboard()
     )
 
 async def help_command(update, context):
@@ -142,29 +144,7 @@ async def book_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик нажатий на кнопки"""
-    query = update.callback_query
-    await query.answer()
-    
-    user_id = update.effective_user.id
-    callback_data = query.data
-
-    if user_id in ticket_booking.booking_data:
-        message, keyboard = ticket_booking.process_callback(callback_data, user_id)
-        if keyboard:
-            await query.edit_message_text(text=message, reply_markup=keyboard)
-        else:
-            await query.edit_message_text(text=message)
-        return
-
-    if callback_data.startswith("flight_"):
-        message, keyboard = flight_status.handle_callback(callback_data, user_id)
-        if keyboard:
-            await query.edit_message_text(text=message, reply_markup=keyboard)
-        else:
-            await query.edit_message_text(text=message)
-        return
-
-    await query.edit_message_text(text="Ошибка: неверный callback")
+    await button_handler.handle_callback(update, context)
 
 async def handle_voice(update, context):
     """Обрабатывает голосовые сообщения"""
@@ -248,12 +228,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE, tex
             await update.message.reply_text(airport_info)
             return
         elif intent == "price_query":
-            route_info = flight_info.format_route_info("Москва", city)
-            await update.message.reply_text(route_info)
+            price_info = flight_info.format_price_info("Москва", city)
+            await update.message.reply_text(price_info)
             return
         elif intent == "best_time_to_visit":
             weather_info = flight_info.format_weather_info(city)
             await update.message.reply_text(f"Лучшее время для посещения {city}:\n{weather_info}")
+            return
+        elif intent == "flight_status":
+            await update.message.reply_text("Для проверки статуса рейса, пожалуйста, используйте /status.")
+            return
+        elif intent == "luggage_info":
+            baggage_info = flight_info.format_baggage_info()
+            await update.message.reply_text(baggage_info)
+            return
+        elif intent == "joke":
+            await update.message.reply_text(get_joke())
             return
 
     if "парковка" in text.lower() or "стоянка" in text.lower():
@@ -268,10 +258,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE, tex
         return
 
     casual_handler = CasualDialogHandler()
-    casual_response, should_add_ad = casual_handler.get_response(text)
+    casual_response, should_add_ad, keyboard = casual_handler.get_response(text)
     if casual_response:
-        logger.info("Найден casual диалог")
-        await update.message.reply_text(casual_response)
+        if keyboard:
+            await update.message.reply_text(casual_response, reply_markup=keyboard)
+        else:
+            await update.message.reply_text(casual_response)
         return
 
     response = find_best_response(text, dialogues)
@@ -334,6 +326,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE, tex
     if random.random() > 0.8:
         await asyncio.sleep(1)
         await update.message.reply_text(get_random_ad())
+
+    fallback_response = random.choice(dialogues['fallback_responses'])
+    await update.message.reply_text(fallback_response)
 
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /status"""
