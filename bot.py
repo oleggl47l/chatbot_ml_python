@@ -21,6 +21,7 @@ from scenarios.dialogue_engine import load_dialogues, find_best_response
 from speech_handler import SpeechHandler
 from utils.spell_check import correct_text
 from handlers.buttons import ButtonHandler
+from handlers.voice import VoiceHandler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ speech_handler = SpeechHandler()
 ticket_booking = TicketBooking()
 flight_status = FlightStatus()
 button_handler = ButtonHandler(ticket_booking, flight_status)
+voice_handler = VoiceHandler(speech_handler)
 print("=== Инициализация завершена ===\n")
 
 class TelegramBot:
@@ -148,19 +150,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_voice(update, context):
     """Обрабатывает голосовые сообщения"""
-    processing_message = await update.message.reply_text("Обрабатываю голосовое сообщение...")
-    
-    text = await speech_handler.handle_voice(update, context)
-    
-    if text.startswith("Ошибка"):
-        await processing_message.edit_text(text)
-        return
-        
-    await processing_message.delete()
-    
-    await update.message.reply_text(f"Распознано: {text}")
-    
-    await handle_message(update, context, text)
+    text = await voice_handler.handle_voice(update, context)
+    if text and not text.startswith("Ошибка"):
+        await handle_message(update, context, text)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE, text=None):
     """Обработчик текстовых сообщений"""
@@ -226,10 +218,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE, tex
         elif intent == "airport_info":
             airport_info = flight_info.format_airport_info(city)
             await update.message.reply_text(airport_info)
-            return
-        elif intent == "price_query":
-            price_info = flight_info.format_price_info("Москва", city)
-            await update.message.reply_text(price_info)
             return
         elif intent == "best_time_to_visit":
             weather_info = flight_info.format_weather_info(city)
