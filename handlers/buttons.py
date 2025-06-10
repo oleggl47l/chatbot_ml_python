@@ -2,8 +2,8 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ContextTypes
 
-from data.ticket_booking import TicketBooking
-from data.flight_status import FlightStatus
+from services.ticket_booking import TicketBooking
+from services.flight_status import FlightStatus
 
 logger = logging.getLogger(__name__)
 
