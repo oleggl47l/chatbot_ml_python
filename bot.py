@@ -24,7 +24,7 @@ from nlp.ner import extract_city, replace_placeholders
 from nlp.preprocessor import preprocess, lemmatize
 from scenarios.ads import get_random_ad
 from scenarios.dialogue_engine import load_dialogues, find_best_response
-from speech_handler import SpeechHandler
+from handlers.speech import SpeechHandler
 from utils.spell_check import correct_text
 from handlers.buttons import ButtonHandler
 from handlers.voice import VoiceHandler

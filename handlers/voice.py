@@ -2,7 +2,7 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from speech_handler import SpeechHandler
+from handlers.speech import SpeechHandler
 
 logger = logging.getLogger(__name__)
 
