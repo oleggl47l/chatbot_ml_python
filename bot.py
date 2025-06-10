@@ -317,14 +317,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE, tex
         elif intent == "best_time_to_visit":
             await update.message.reply_text("Для какого города вы хотите узнать лучшее время для посещения?")
         else:
-            await update.message.reply_text("Не совсем понял вопрос. Можете переформулировать?")
+            fallback_responses = [
+                "Извините, я не совсем понял ваш вопрос. Можете переформулировать?",
+                "Не уверен, что правильно понял. Можете уточнить?",
+                "Извините, я не могу найти информацию по вашему запросу. Попробуйте задать вопрос по-другому.",
+                "К сожалению, я не могу ответить на этот вопрос. Может быть, вы хотели узнать что-то другое?",
+                "Извините, я не совсем понимаю. Можете задать вопрос по-другому?"
+            ]
+            fallback_response = random.choice(fallback_responses)
+            await update.message.reply_text(fallback_response)
 
     if random.random() > 0.8:
         await asyncio.sleep(1)
         await update.message.reply_text(get_random_ad())
-
-    fallback_response = random.choice(dialogues['fallback_responses'])
-    await update.message.reply_text(fallback_response)
 
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /status"""
