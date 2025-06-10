@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 import os
 from data.flight_info import FlightInfo
 from nlp.casual_dialog import CasualDialogHandler
+from speech_handler import SpeechHandler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ print("Модель обучена")
 
 dialogues = load_dialogues()
 flight_info = FlightInfo()
+speech_handler = SpeechHandler()
 print("=== Инициализация завершена ===\n")
 
 class TelegramBot:
@@ -87,11 +89,33 @@ def get_joke():
     return "Извините, у меня закончились шутки 😅"
 
 async def start(update, context):
-    await update.message.reply_text("Привет! Я помогу тебе найти лучшие авиабилеты ✈️")
+    await update.message.reply_text(
+        "Привет! Я помогу тебе найти лучшие авиабилеты ✈️\n"
+        "Ты можешь писать мне текстом или отправлять голосовые сообщения!"
+    )
 
-async def handle_message(update, context):
+async def handle_voice(update, context):
+    """Обрабатывает голосовые сообщения"""
+    processing_message = await update.message.reply_text("Обрабатываю голосовое сообщение...")
+    
+    text = await speech_handler.handle_voice(update, context)
+    
+    if text.startswith("Ошибка"):
+        await processing_message.edit_text(text)
+        return
+        
+    await processing_message.delete()
+    
+    await update.message.reply_text(f"Распознано: {text}")
+    
+    await handle_message(update, context, text)
+
+async def handle_message(update, context, text=None):
+    """Обрабатывает текстовые сообщения"""
+    if text is None:
+        text = update.message.text
+
     user_id = update.effective_user.id
-    text = update.message.text
 
     city = extract_city(text)
     if city:
@@ -219,6 +243,7 @@ def run_bot():
 
     application = Application.builder().token(token).build()
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_voice))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("Бот запущен...")
