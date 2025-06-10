@@ -1,3 +1,5 @@
+from typing import Optional, List, Dict
+
 from natasha import (
     NewsNERTagger,
     NewsEmbedding,
@@ -5,7 +7,6 @@ from natasha import (
     Segmenter,
     MorphVocab
 )
-from typing import Optional, List, Dict
 
 emb = NewsEmbedding()
 tagger = NewsNERTagger(emb)

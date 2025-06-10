@@ -1,11 +1,14 @@
 import json
+
 import joblib
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
+
 from nlp.preprocessor import preprocess, lemmatize
 from utils.spell_check import correct_text
+
 
 class IntentClassifier:
     def __init__(self):

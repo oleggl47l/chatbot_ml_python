@@ -5,13 +5,13 @@ import os
 import random
 
 from dotenv import load_dotenv
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ContextTypes
 
 from data.flight_info import FlightInfo
-from data.ticket_booking import TicketBooking
 from data.flight_status import FlightStatus
+from data.ticket_booking import TicketBooking
 from nlp.casual_dialog import CasualDialogHandler
 from nlp.intent_model import IntentClassifier
 from nlp.ner import extract_city, replace_placeholders

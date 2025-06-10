@@ -1,5 +1,6 @@
-import pandas as pd
 import os
+
+import pandas as pd
 
 emo_dict_path = os.path.join(os.path.dirname(__file__), "..", "data", "emo_dict.csv")
 emo_df = pd.read_csv(emo_dict_path)

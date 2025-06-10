@@ -1,6 +1,7 @@
 import re
-from natasha import Doc, Segmenter, MorphVocab, NewsEmbedding, NewsMorphTagger
 import warnings
+
+from natasha import Doc, Segmenter, MorphVocab, NewsEmbedding, NewsMorphTagger
 
 warnings.filterwarnings("ignore", category=UserWarning, message="pkg_resources is deprecated")
 

@@ -1,6 +1,7 @@
+from nlp.intent_model import IntentClassifier
 from nlp.preprocessor import preprocess, lemmatize
 from utils.spell_check import correct_text
-from nlp.intent_model import IntentClassifier
+
 
 def test_preprocessing():
     test_phrases = [

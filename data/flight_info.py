@@ -1,5 +1,6 @@
 import json
 from typing import Dict, Optional
+
 import pymorphy2
 
 

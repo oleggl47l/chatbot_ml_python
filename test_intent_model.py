@@ -1,7 +1,8 @@
 from nlp.intent_model import IntentClassifier
-from nlp.preprocessor import preprocess, lemmatize
 from nlp.ner import extract_city, replace_placeholders
+from nlp.preprocessor import preprocess, lemmatize
 from utils.spell_check import correct_text
+
 
 def test_model():
     classifier = IntentClassifier()
