@@ -6,8 +6,14 @@ import random
 
 from dotenv import load_dotenv
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
-from telegram.ext import ContextTypes
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    filters,
+    ContextTypes
+)
 
 from data.flight_info import FlightInfo
 from data.flight_status import FlightStatus
@@ -22,6 +28,7 @@ from speech_handler import SpeechHandler
 from utils.spell_check import correct_text
 from handlers.buttons import ButtonHandler
 from handlers.voice import VoiceHandler
+from handlers.commands import CommandHandler as CustomCommandHandler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,6 +45,7 @@ ticket_booking = TicketBooking()
 flight_status = FlightStatus()
 button_handler = ButtonHandler(ticket_booking, flight_status)
 voice_handler = VoiceHandler(speech_handler)
+command_handler = CustomCommandHandler(flight_info, flight_status, ticket_booking, button_handler)
 print("=== Инициализация завершена ===\n")
 
 class TelegramBot:
@@ -332,11 +340,11 @@ def run_bot():
         raise ValueError("TELEGRAM_BOT_TOKEN не найден в .env файле!")
 
     application = Application.builder().token(token).build()
-    application.add_handler(CommandHandler("start", start_command))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("book", book_command))
+    application.add_handler(CommandHandler("start", command_handler.start_command))
+    application.add_handler(CommandHandler("help", command_handler.help_command))
+    application.add_handler(CommandHandler("book", command_handler.book_command))
     application.add_handler(CommandHandler("status", status_command))
-    application.add_handler(CallbackQueryHandler(handle_callback))
+    application.add_handler(CallbackQueryHandler(button_handler.handle_callback))
     application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_voice))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
