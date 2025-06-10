@@ -1,0 +1,104 @@
+{
+    "flight_classes": {
+        "economy": {
+            "name": "Эконом",
+            "description": "Стандартный класс обслуживания",
+            "baggage": "1 место до 23 кг",
+            "hand_luggage": "1 место до 10 кг",
+            "seat_selection": "Базовый выбор мест",
+            "meals": "Стандартное питание"
+        },
+        "comfort": {
+            "name": "Комфорт",
+            "description": "Повышенный комфорт",
+            "baggage": "2 места до 23 кг",
+            "hand_luggage": "1 место до 12 кг",
+            "seat_selection": "Расширенный выбор мест",
+            "meals": "Расширенное питание"
+        },
+        "business": {
+            "name": "Бизнес",
+            "description": "Максимальный комфорт",
+            "baggage": "2 места до 32 кг",
+            "hand_luggage": "1 место до 15 кг",
+            "seat_selection": "Приоритетный выбор мест",
+            "meals": "Премиум питание"
+        }
+    },
+    "seat_types": {
+        "window": {
+            "name": "У окна",
+            "description": "Место у иллюминатора"
+        },
+        "aisle": {
+            "name": "У прохода",
+            "description": "Место у прохода"
+        },
+        "middle": {
+            "name": "В середине",
+            "description": "Место в середине ряда"
+        }
+    },
+    "meal_options": {
+        "standard": {
+            "name": "Стандартное",
+            "description": "Обычное питание"
+        },
+        "vegetarian": {
+            "name": "Вегетарианское",
+            "description": "Без мясных блюд"
+        },
+        "muslim": {
+            "name": "Мусульманское",
+            "description": "Халяль"
+        },
+        "child": {
+            "name": "Детское",
+            "description": "Специальное детское меню"
+        }
+    },
+    "booking_steps": {
+        "select_destination": {
+            "name": "Выбор направления",
+            "description": "Выберите город назначения"
+        },
+        "select_date": {
+            "name": "Выбор даты",
+            "description": "Выберите дату вылета"
+        },
+        "select_class": {
+            "name": "Выбор класса",
+            "description": "Выберите класс обслуживания"
+        },
+        "select_seat": {
+            "name": "Выбор места",
+            "description": "Выберите место в салоне"
+        },
+        "select_meal": {
+            "name": "Выбор питания",
+            "description": "Выберите тип питания"
+        },
+        "enter_passenger": {
+            "name": "Данные пассажира",
+            "description": "Введите данные пассажира"
+        },
+        "payment": {
+            "name": "Оплата",
+            "description": "Выберите способ оплаты"
+        }
+    },
+    "payment_methods": {
+        "card": {
+            "name": "Банковская карта",
+            "description": "Оплата картой Visa/Mastercard"
+        },
+        "transfer": {
+            "name": "Банковский перевод",
+            "description": "Перевод на расчетный счет"
+        },
+        "cash": {
+            "name": "Наличные",
+            "description": "Оплата в кассе аэропорта"
+        }
+    }
+} 

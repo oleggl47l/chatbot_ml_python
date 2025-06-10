@@ -1,20 +1,22 @@
 import asyncio
 import json
-import random
 import logging
-
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
-from nlp.intent_model import IntentClassifier
-from nlp.preprocessor import preprocess, lemmatize
-from nlp.ner import extract_city, replace_placeholders
-from scenarios.ads import get_random_ad
-from scenarios.dialogue_engine import load_dialogues, find_best_response, dialog_context
-from utils.spell_check import correct_text
-from dotenv import load_dotenv
 import os
+import random
+
+from dotenv import load_dotenv
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
+
 from data.flight_info import FlightInfo
+from data.ticket_booking import TicketBooking
 from nlp.casual_dialog import CasualDialogHandler
+from nlp.intent_model import IntentClassifier
+from nlp.ner import extract_city, replace_placeholders
+from nlp.preprocessor import preprocess, lemmatize
+from scenarios.ads import get_random_ad
+from scenarios.dialogue_engine import load_dialogues, find_best_response
 from speech_handler import SpeechHandler
+from utils.spell_check import correct_text
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,6 +29,7 @@ print("Модель обучена")
 dialogues = load_dialogues()
 flight_info = FlightInfo()
 speech_handler = SpeechHandler()
+ticket_booking = TicketBooking()
 print("=== Инициализация завершена ===\n")
 
 class TelegramBot:
@@ -91,8 +94,41 @@ def get_joke():
 async def start(update, context):
     await update.message.reply_text(
         "Привет! Я помогу тебе найти лучшие авиабилеты ✈️\n"
-        "Ты можешь писать мне текстом или отправлять голосовые сообщения!"
+        "Ты можешь писать мне текстом или отправлять голосовые сообщения!\n\n"
+        "Доступные команды:\n"
+        "/book - Начать бронирование билета\n"
+        "/help - Показать справку"
     )
+
+async def help_command(update, context):
+    await update.message.reply_text(
+        "Я могу помочь вам с:\n"
+        "• Поиском и бронированием билетов (/book)\n"
+        "• Информацией о рейсах и ценах\n"
+        "• Правилами провоза багажа\n"
+        "• Онлайн-регистрацией\n"
+        "• Погодой в городах\n\n"
+        "Вы можете писать мне текстом или отправлять голосовые сообщения!"
+    )
+
+async def book_command(update, context):
+    """Начинает процесс бронирования билета"""
+    user_id = update.effective_user.id
+    message, keyboard = ticket_booking.start_booking(user_id)
+    await update.message.reply_text(message, reply_markup=keyboard)
+
+async def handle_callback(update, context):
+    """Обрабатывает нажатия на интерактивные кнопки"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = update.effective_user.id
+    message, keyboard = ticket_booking.process_callback(user_id, query.data)
+    
+    if keyboard:
+        await query.message.edit_text(message, reply_markup=keyboard)
+    else:
+        await query.message.edit_text(message)
 
 async def handle_voice(update, context):
     """Обрабатывает голосовые сообщения"""
@@ -116,6 +152,16 @@ async def handle_message(update, context, text=None):
         text = update.message.text
 
     user_id = update.effective_user.id
+
+    if user_id in ticket_booking.booking_data:
+        booking = ticket_booking.booking_data[user_id]
+        if booking["step"] == "enter_passenger":
+            message, keyboard = ticket_booking.process_passenger_data(user_id, text)
+            if keyboard:
+                await update.message.reply_text(message, reply_markup=keyboard)
+            else:
+                await update.message.reply_text(message)
+            return
 
     city = extract_city(text)
     if city:
@@ -192,8 +238,7 @@ async def handle_message(update, context, text=None):
                 "Здравствуйте! Куда летим сегодня?"
             ]))
         elif intent == "buy_ticket":
-            dialog_context.update_context(user_id, 'awaiting_destination', True)
-            await update.message.reply_text("В какой город летим?")
+            await book_command(update, context)
         elif intent == "joke":
             await update.message.reply_text(get_joke())
         elif intent == "thanks":
@@ -221,7 +266,7 @@ async def handle_message(update, context, text=None):
             baggage_info = flight_info.format_baggage_info("business")
             await update.message.reply_text(baggage_info)
         elif intent == "help":
-            await update.message.reply_text("Я могу помочь вам с:\n• Поиском и покупкой билетов\n• Информацией о рейсах и ценах\n• Правилами провоза багажа\n• Онлайн-регистрацией\n• Погодой в городах\nЧто вас интересует?")
+            await help_command(update, context)
         elif intent == "payment_issues":
             await update.message.reply_text("По вопросам оплаты и возврата билетов обращайтесь в службу поддержки авиакомпании или в наш офис.")
         elif intent == "additional_services":
@@ -243,6 +288,9 @@ def run_bot():
 
     application = Application.builder().token(token).build()
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("book", book_command))
+    application.add_handler(CallbackQueryHandler(handle_callback))
     application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_voice))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
