@@ -15,20 +15,20 @@ from telegram.ext import (
     ContextTypes
 )
 
-from services.flight_info import FlightInfo
-from services.flight_status import FlightStatus
-from services.ticket_booking import TicketBooking
+from handlers.buttons import ButtonHandler
+from handlers.commands import CommandHandler as CustomCommandHandler
+from handlers.speech import SpeechHandler
+from handlers.voice import VoiceHandler
 from nlp.casual_dialog import CasualDialogHandler
 from nlp.intent_model import IntentClassifier
 from nlp.ner import extract_city, replace_placeholders
 from nlp.preprocessor import preprocess, lemmatize
 from scenarios.ads import get_random_ad
 from scenarios.dialogue_engine import load_dialogues, find_best_response
-from handlers.speech import SpeechHandler
+from services.flight_info import FlightInfo
+from services.flight_status import FlightStatus
+from services.ticket_booking import TicketBooking
 from utils.spell_check import correct_text
-from handlers.buttons import ButtonHandler
-from handlers.voice import VoiceHandler
-from handlers.commands import CommandHandler as CustomCommandHandler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

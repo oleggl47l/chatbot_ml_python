@@ -1,6 +1,7 @@
 import json
 import random
-from typing import Optional, Any, Tuple
+from typing import Optional, Tuple
+
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
 from nlp.preprocessor import lemmatize
