@@ -296,61 +296,34 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE, tex
         intent = intent_model.predict(lemmatized)
         logger.info(f"Определенный интент: {intent}")
 
-        if intent == "greet":
-            response = bot.get_intent_response(intent, text)
-            if response:
-                await update.message.reply_text(response, reply_markup=get_tts_keyboard(response))
-
-        elif intent == "buy_ticket":
+        if intent == "buy_ticket":
             await book_command(update, context)
-        elif intent == "joke":
-            await update.message.reply_text(get_joke(), reply_markup=get_tts_keyboard(get_joke()))
-        elif intent == "thanks":
-            response = bot.get_intent_response(intent, text)
-            if response:
-                await update.message.reply_text(response, reply_markup=get_tts_keyboard(response))
-        elif intent == "goodbye":
-            response = bot.get_intent_response(intent, text)
-            if response:
-                await update.message.reply_text(response, reply_markup=get_tts_keyboard(response))
-        elif intent == "flight_status":
-            response = bot.get_intent_response(intent, text)
-            if response:
-                await update.message.reply_text(response, reply_markup=get_tts_keyboard(response))
         elif intent == "luggage_info":
             baggage_info = flight_info.format_baggage_info()
             await update.message.reply_text(baggage_info)
-        elif intent == "check_in":
-            response = bot.get_intent_response(intent, text)
-            if response:
-                await update.message.reply_text(response, reply_markup=get_tts_keyboard(response))
-        elif intent == "discounts":
-            text = "Сейчас действуют специальные тарифы на рейсы в Сочи и Санкт-Петербург. Уточните конкретный маршрут для получения актуальной информации."
-            await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
         elif intent == "business_class":
             baggage_info = flight_info.format_baggage_info("business")
             await update.message.reply_text(baggage_info, reply_markup=get_tts_keyboard(baggage_info))
         elif intent == "help":
             await help_command(update, context)
-        elif intent == "payment_issues":
-            text = "По вопросам оплаты и возврата билетов обращайтесь в службу поддержки авиакомпании или в наш офис."
-            await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
-        elif intent == "additional_services":
-            text = "Дополнительные услуги включают:\n• Выбор места в салоне\n• Специальное питание\n• Трансфер до аэропорта\n• Страхование\nУточните, какая услуга вас интересует."
-            await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
-        elif intent == "best_time_to_visit":
-            text = "Для какого города вы хотите узнать лучшее время для посещения?"
-            await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
-        else:
-            fallback_responses = [
-                "Извините, я не совсем понял ваш вопрос. Можете переформулировать?",
-                "Не уверен, что правильно понял. Можете уточнить?",
-                "Извините, я не могу найти информацию по вашему запросу. Попробуйте задать вопрос по-другому.",
-                "К сожалению, я не могу ответить на этот вопрос. Может быть, вы хотели узнать что-то другое?",
-                "Извините, я не совсем понимаю. Можете задать вопрос по-другому?"
-            ]
-            fallback_response = random.choice(fallback_responses)
+
+        response = bot.get_intent_response(intent, text)
+        if response:
+            await update.message.reply_text(response, reply_markup=get_tts_keyboard(response))
+            return
+
+        fallback_response = find_best_response(text, dialogues)
+        if fallback_response and fallback_response != "Не совсем понял вопрос. Можете переформулировать?":
             await update.message.reply_text(fallback_response, reply_markup=get_tts_keyboard(fallback_response))
+            return
+
+        # Последний fallback
+        default_fallback = random.choice([
+            "Извините, я не совсем понял ваш вопрос. Можете переформулировать?",
+            "Попробуйте немного иначе сформулировать запрос.",
+            "Я пока не знаю, как на это ответить. Но учусь каждый день! 🙂"
+        ])
+        await update.message.reply_text(default_fallback, reply_markup=get_tts_keyboard(default_fallback))
 
     if random.random() > 0.8:
         await asyncio.sleep(1)
