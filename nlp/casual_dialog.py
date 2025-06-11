@@ -5,6 +5,7 @@ from typing import Optional, Tuple
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
 from nlp.preprocessor import lemmatize
+from utils.tts import get_tts_keyboard
 
 
 class CasualDialogHandler:
@@ -68,7 +69,7 @@ class CasualDialogHandler:
 
     def get_response(self, text: str) -> Tuple[Optional[str], bool, Optional[InlineKeyboardMarkup]]:
         """
-        Возвращает ответ, флаг для рекламы и клавиатуру с кнопкой
+        Возвращает ответ, флаг для рекламы и клавиатуру с кнопками
         Returns: (response, should_add_ad, keyboard)
         """
         topic = self.find_topic(text)
@@ -79,20 +80,21 @@ class CasualDialogHandler:
         response = random.choice(responses)
 
         should_add_ad = random.random() < 0.7
-        keyboard = None
+
+        keyboard_buttons = []
+
+        tts_keyboard = get_tts_keyboard(response)
+        keyboard_buttons.append(tts_keyboard.inline_keyboard[0])
 
         if should_add_ad:
             transition = random.choice(self.data['transition_phrases'])
             transition_text = f"{transition['phrase']} {transition['emoji']}"
-
             follow_up = random.choice(self.data['follow_ups'])
-
             ad_phrase = random.choice(self.data['ad_phrases'])
-
             response = f"{response}\n\n{transition_text}\n{follow_up}\n{ad_phrase}"
 
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("✈️ Заказать билет", callback_data="start_booking")]
-            ])
+            keyboard_buttons.append([InlineKeyboardButton("✈️ Заказать билет", callback_data="start_booking")])
+
+        keyboard = InlineKeyboardMarkup(keyboard_buttons) if keyboard_buttons else None
 
         return response, should_add_ad, keyboard
