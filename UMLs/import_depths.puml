@@ -1,0 +1,29 @@
+@startuml
+actor Пользователь as User
+participant "Telegram Bot API" as TelegramAPI
+participant "python-telegram-bot\n(обработка сообщений и команд)" as BotLib
+participant "Обработка текста\n(spellchecker, sklearn, numpy)" as TextProcessing
+participant "Обработка аудио\n(pydub, speech_recognition)" as AudioProcessing
+participant "Обработка NLP\n(natasha, pymorphy2)" as NLPProcessing
+participant "Распознавание речи\n(Google Speech API)" as SpeechAPI
+participant "Генерация ответа\n(логика бота, gTTS)" as ResponseGen
+participant "Озвучивание ответа" as TTS
+participant "Отправка в Telegram" as SendTelegram
+
+User -> TelegramAPI : Отправка сообщений
+TelegramAPI -> BotLib : Приём сообщений и команд
+BotLib -> TextProcessing : Обработка текста
+BotLib -> AudioProcessing : Обработка аудио
+AudioProcessing -> SpeechAPI : Запрос распознавания речи
+SpeechAPI --> AudioProcessing : Распознанный текст
+AudioProcessing --> BotLib : Передача текста
+TextProcessing --> BotLib : Результаты обработки
+BotLib -> NLPProcessing : Морфологический анализ, извлечение сущностей
+NLPProcessing --> BotLib : Анализ текста
+BotLib -> ResponseGen : Формирование ответа
+ResponseGen -> TTS : Синтез речи
+TTS --> ResponseGen : Озвученный ответ
+ResponseGen -> SendTelegram : Отправка текста и аудио
+SendTelegram -> TelegramAPI : Отправка сообщений пользователю
+TelegramAPI -> User : Ответ пользователю
+@enduml
