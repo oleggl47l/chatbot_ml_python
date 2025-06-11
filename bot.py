@@ -30,6 +30,7 @@ from services.flight_info import FlightInfo
 from services.flight_status import FlightStatus
 from services.ticket_booking import TicketBooking
 from utils.spell_check import correct_text
+from utils.tts import get_tts_keyboard, tts_callback
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -171,43 +172,6 @@ async def handle_voice(update, context):
     text = await voice_handler.handle_voice(update, context)
     if text and not text.startswith("Ошибка"):
         await handle_message(update, context, text)
-
-
-tts_cache = {}
-
-
-def get_tts_keyboard(text: str) -> InlineKeyboardMarkup:
-    short_id = str(uuid4())[:8]
-    tts_cache[short_id] = text
-    return InlineKeyboardMarkup([[
-        InlineKeyboardButton("🔊 Прочитать", callback_data=f"tts|{short_id}")
-    ]])
-
-
-async def tts_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-
-    if not data.startswith("tts|"):
-        return
-
-    short_id = data.split("|", 1)[1]
-    text = tts_cache.get(short_id)
-
-    if not text:
-        await query.message.reply_text("Текст для озвучки не найден или устарел.")
-        return
-
-    from gtts import gTTS
-    from io import BytesIO
-
-    tts = gTTS(text=text[:500], lang='ru')
-    voice = BytesIO()
-    tts.write_to_fp(voice)
-    voice.seek(0)
-
-    await query.message.reply_voice(voice)
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE, text=None):
