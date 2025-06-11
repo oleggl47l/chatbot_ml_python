@@ -102,6 +102,7 @@ class TelegramBot:
 
         return random.choice(self.dialogues['fallback_responses'])
 
+bot = TelegramBot()
 
 def get_joke():
     with open('data/intents.json', 'r', encoding='utf-8') as f:
@@ -296,38 +297,33 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE, tex
         logger.info(f"Определенный интент: {intent}")
 
         if intent == "greet":
-            text = random.choice([
-                "Привет! Готов помочь с билетами!",
-                "Здравствуйте! Куда летим сегодня?"
-            ])
-            await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
+            response = bot.get_intent_response(intent, text)
+            if response:
+                await update.message.reply_text(response, reply_markup=get_tts_keyboard(response))
+
         elif intent == "buy_ticket":
             await book_command(update, context)
         elif intent == "joke":
             await update.message.reply_text(get_joke(), reply_markup=get_tts_keyboard(get_joke()))
         elif intent == "thanks":
-            text = random.choice([
-                "Рад помочь!",
-                "Пожалуйста, обращайтесь ещё!",
-                "Хорошего дня!"
-            ])
-            await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
+            response = bot.get_intent_response(intent, text)
+            if response:
+                await update.message.reply_text(response, reply_markup=get_tts_keyboard(response))
         elif intent == "goodbye":
-            text = random.choice([
-                "До встречи!",
-                "Удачного дня и хороших перелётов!",
-                "Всегда рад помочь!"
-            ])
-            await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
+            response = bot.get_intent_response(intent, text)
+            if response:
+                await update.message.reply_text(response, reply_markup=get_tts_keyboard(response))
         elif intent == "flight_status":
-            text = "Для проверки статуса рейса, пожалуйста, укажите номер рейса или маршрут."
-            await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
+            response = bot.get_intent_response(intent, text)
+            if response:
+                await update.message.reply_text(response, reply_markup=get_tts_keyboard(response))
         elif intent == "luggage_info":
             baggage_info = flight_info.format_baggage_info()
             await update.message.reply_text(baggage_info)
         elif intent == "check_in":
-            text = "Онлайн-регистрация доступна за 24 часа до вылета на сайте авиакомпании или через мобильное приложение."
-            await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
+            response = bot.get_intent_response(intent, text)
+            if response:
+                await update.message.reply_text(response, reply_markup=get_tts_keyboard(response))
         elif intent == "discounts":
             text = "Сейчас действуют специальные тарифы на рейсы в Сочи и Санкт-Петербург. Уточните конкретный маршрут для получения актуальной информации."
             await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))

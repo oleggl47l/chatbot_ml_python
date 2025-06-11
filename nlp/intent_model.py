@@ -29,6 +29,7 @@ class IntentClassifier:
         )
         self.label_encoder = LabelEncoder()
         self.confidence_threshold = 0.2
+        self.intents = {}
 
     def load_data(self, path='data/intents.json'):
         with open(path, 'r', encoding='utf-8') as f:
@@ -39,6 +40,7 @@ class IntentClassifier:
 
         for intent in data["intents"]:
             tag = intent["tag"]
+            self.intents[tag] = intent
             for pattern in intent["patterns"]:
                 texts.append(pattern)
                 labels.append(tag)
