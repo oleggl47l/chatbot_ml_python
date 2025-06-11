@@ -1,10 +1,12 @@
 import logging
+import os
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ContextTypes
 
 from services.flight_status import FlightStatus
 from services.ticket_booking import TicketBooking
+from utils.tts import text_to_speech_ogg
 
 logger = logging.getLogger(__name__)
 
@@ -63,4 +65,14 @@ class ButtonHandler:
                 await query.edit_message_text(text=message)
             return
 
-        await query.edit_message_text(text="Ошибка: неверный callback") 
+        if callback_data.startswith("tts_play:"):
+            from urllib.parse import unquote_plus
+            text = unquote_plus(callback_data[len("tts_play:"):])
+            ogg_path = text_to_speech_ogg(text)
+            with open(ogg_path, "rb") as audio_file:
+                await query.message.reply_voice(voice=audio_file)
+            os.remove(ogg_path)
+            await query.answer("Воспроизводится...")
+            return
+
+        await query.edit_message_text(text="Ошибка: неверный callback")
