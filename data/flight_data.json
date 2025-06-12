@@ -1,0 +1,208 @@
+{
+  "airports": {
+    "Москва": {
+      "codes": ["SVO", "DME", "VKO", "ZIA"],
+      "transfer": ["аэроэкспресс", "такси", "автобус", "метро"],
+      "parking": true,
+      "terminals": 5
+    },
+    "Санкт-Петербург": {
+      "codes": ["LED"],
+      "transfer": ["такси", "автобус"],
+      "parking": true,
+      "terminals": 2
+    },
+    "Владивосток": {
+      "codes": ["VVO"],
+      "transfer": ["такси", "автобус"],
+      "parking": true,
+      "terminals": 1
+    },
+    "Сочи": {
+      "codes": ["AER"],
+      "transfer": ["такси", "автобус"],
+      "parking": true,
+      "terminals": 2
+    },
+    "Калининград": {
+      "codes": ["KGD"],
+      "transfer": ["такси", "автобус"],
+      "parking": true,
+      "terminals": 1
+    },
+    "Париж": {
+      "codes": ["CDG", "ORY"],
+      "transfer": ["такси", "метро", "автобус"],
+      "parking": true,
+      "terminals": 3
+    },
+    "Барселона": {
+      "codes": ["BCN"],
+      "transfer": ["такси", "метро", "автобус"],
+      "parking": true,
+      "terminals": 2
+    },
+    "Рим": {
+      "codes": ["FCO", "CIA"],
+      "transfer": ["такси", "метро", "автобус"],
+      "parking": true,
+      "terminals": 3
+    }
+  },
+
+  "flight_routes": [
+    {
+      "from": "Москва",
+      "to": "Санкт-Петербург",
+      "duration": 90,
+      "price_range": {
+        "economy": 2500,
+        "business": 15000
+      },
+      "airlines": ["Аэрофлот", "Победа", "S7"],
+      "daily_flights": 15
+    },
+    {
+      "from": "Москва",
+      "to": "Сочи",
+      "duration": 150,
+      "price_range": {
+        "economy": 5000,
+        "business": 25000
+      },
+      "airlines": ["Аэрофлот", "Россия", "Уральские авиалинии"],
+      "daily_flights": 8
+    },
+    {
+      "from": "Москва",
+      "to": "Владивосток",
+      "duration": 600,
+      "price_range": {
+        "economy": 12000,
+        "business": 60000
+      },
+      "airlines": ["Аэрофлот", "S7"],
+      "daily_flights": 3
+    },
+    {
+      "from": "Москва",
+      "to": "Калининград",
+      "duration": 120,
+      "price_range": {
+        "economy": 3500,
+        "business": 18000
+      },
+      "airlines": ["Победа", "S7"],
+      "daily_flights": 5
+    },
+    {
+      "from": "Москва",
+      "to": "Париж",
+      "duration": 240,
+      "price_range": {
+        "economy": 10000,
+        "business": 50000
+      },
+      "airlines": ["Аэрофлот", "Air France"],
+      "daily_flights": 2
+    },
+    {
+      "from": "Москва",
+      "to": "Барселона",
+      "duration": 300,
+      "price_range": {
+        "economy": 12000,
+        "business": 55000
+      },
+      "airlines": ["Аэрофлот", "Vueling"],
+      "daily_flights": 1
+    },
+    {
+      "from": "Москва",
+      "to": "Рим",
+      "duration": 250,
+      "price_range": {
+        "economy": 9000,
+        "business": 45000
+      },
+      "airlines": ["Аэрофлот", "Alitalia"],
+      "daily_flights": 2
+    }
+  ],
+
+  "weather_seasons": {
+    "Сочи": {
+      "best_season": "май-октябрь",
+      "winter_temp": "+5°C",
+      "summer_temp": "+28°C"
+    },
+    "Санкт-Петербург": {
+      "best_season": "июнь-август",
+      "winter_temp": "-10°C",
+      "summer_temp": "+20°C"
+    },
+    "Владивосток": {
+      "best_season": "май-сентябрь",
+      "winter_temp": "-5°C",
+      "summer_temp": "+25°C"
+    },
+    "Калининград": {
+      "best_season": "май-сентябрь",
+      "winter_temp": "0°C",
+      "summer_temp": "+22°C"
+    },
+    "Париж": {
+      "best_season": "апрель-октябрь",
+      "winter_temp": "0°C",
+      "summer_temp": "+25°C"
+    },
+    "Барселона": {
+      "best_season": "май-октябрь",
+      "winter_temp": "+10°C",
+      "summer_temp": "+30°C"
+    },
+    "Рим": {
+      "best_season": "апрель-октябрь",
+      "winter_temp": "+5°C",
+      "summer_temp": "+30°C"
+    }
+  },
+
+  "baggage_rules": {
+    "economy": {
+      "hand_luggage": "1 место до 10кг",
+      "luggage": "1 место до 23кг"
+    },
+    "business": {
+      "hand_luggage": "2 места до 15кг",
+      "luggage": "2 места до 32кг"
+    }
+  },
+
+  "airlines": {
+    "Аэрофлот": {
+      "contact": "8-800-444-55-55",
+      "website": "www.aeroflot.ru"
+    },
+    "S7": {
+      "contact": "8-800-700-07-07",
+      "website": "www.s7.ru"
+    },
+    "Победа": {
+      "contact": "8-800-700-00-00",
+      "website": "www.pobeda.aero"
+    },
+    "Air France": {
+      "contact": "+33 1 70 36 39 50",
+      "website": "www.airfrance.com"
+    },
+    "Vueling": {
+      "contact": "+34 902 808 200",
+      "website": "www.vueling.com"
+    },
+    "Alitalia": {
+      "contact": "+39 06 65649",
+      "website": "www.alitalia.com"
+    }
+  }
+}

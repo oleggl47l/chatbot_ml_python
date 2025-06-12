@@ -1,0 +1,73 @@
+@startuml
+title Архитектура Telegram-бота по продаже авиабилетов
+
+actor User
+rectangle "Telegram Bot API" as Telegram
+
+package "Основной модуль" {
+    [bot.py]
+    [main.py]
+}
+
+package "Обработчики событий (handlers)" {
+    [commands.py]
+    [buttons.py]
+    [speech.py]
+    [voice.py]
+}
+
+package "Обработка языка (nlp)" {
+    [intent_model.py]
+    [preprocessor.py]
+    [ner.py]
+    [casual_dialog.py]
+}
+
+package "Логика сценариев" {
+    [dialogue_engine.py]
+    [ads.py]
+}
+
+package "Сервисы данных" {
+    [flight_info.py]
+    [ticket_booking.py]
+    [flight_status.py]
+}
+
+package "Утилиты (utils)" {
+    [tts.py]
+    [spell_check.py]
+}
+
+package "Данные (data)" {
+    [intents.json]
+    [flight_info.json]
+    [ticket_data.json]
+    [flight_data.json]
+    [casual_dialogues.json]
+    [dialogues.txt]
+}
+
+User --> Telegram : сообщение (текст/голос/команда)
+Telegram --> [bot.py] : обновление
+[bot.py] --> [commands.py] : если команда
+[bot.py] --> [buttons.py] : если callback
+[bot.py] --> [speech.py] : если голос
+[speech.py] --> [voice.py]
+[bot.py] --> [intent_model.py] : анализ запроса
+[intent_model.py] --> [preprocessor.py]
+[intent_model.py] --> [ner.py]
+[intent_model.py] --> [casual_dialog.py]
+
+[intent_model.py] --> [dialogue_engine.py] : fallback ответы
+[dialogue_engine.py] --> [ads.py] : вставка рекламы
+
+[bot.py] --> [flight_info.py] : если запрос про рейс
+[bot.py] --> [ticket_booking.py] : если заказ билета
+
+[bot.py] --> [tts.py] : при запросе озвучки
+[tts.py] --> Telegram : отправка голосового сообщения
+
+[bot.py] --> Telegram : ответ пользователю
+
+@enduml

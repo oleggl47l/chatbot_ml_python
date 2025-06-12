@@ -1,0 +1,130 @@
+{
+    "flights": {
+        "SU1001": {
+            "route": "Москва - Санкт-Петербург",
+            "airline": "Аэрофлот",
+            "departure_time": "08:00",
+            "arrival_time": "09:30",
+            "duration": "1ч 30м",
+            "aircraft": "Boeing 737",
+            "status": "По расписанию",
+            "gate": "A12",
+            "terminal": "D"
+        },
+        "SU1002": {
+            "route": "Санкт-Петербург - Москва",
+            "airline": "Аэрофлот",
+            "departure_time": "10:00",
+            "arrival_time": "11:30",
+            "duration": "1ч 30м",
+            "aircraft": "Boeing 737",
+            "status": "Задержка 15 минут",
+            "gate": "B15",
+            "terminal": "C"
+        },
+        "SU2001": {
+            "route": "Москва - Сочи",
+            "airline": "Аэрофлот",
+            "departure_time": "09:00",
+            "arrival_time": "11:00",
+            "duration": "2ч 00м",
+            "aircraft": "Airbus A320",
+            "status": "По расписанию",
+            "gate": "C08",
+            "terminal": "D"
+        },
+        "SU2002": {
+            "route": "Сочи - Москва",
+            "airline": "Аэрофлот",
+            "departure_time": "12:00",
+            "arrival_time": "14:00",
+            "duration": "2ч 00м",
+            "aircraft": "Airbus A320",
+            "status": "По расписанию",
+            "gate": "A05",
+            "terminal": "C"
+        },
+        "SU3001": {
+            "route": "Москва - Казань",
+            "airline": "Аэрофлот",
+            "departure_time": "07:30",
+            "arrival_time": "09:00",
+            "duration": "1ч 30м",
+            "aircraft": "Boeing 737",
+            "status": "Задержка 30 минут",
+            "gate": "B10",
+            "terminal": "D"
+        },
+        "SU3002": {
+            "route": "Казань - Москва",
+            "airline": "Аэрофлот",
+            "departure_time": "10:30",
+            "arrival_time": "12:00",
+            "duration": "1ч 30м",
+            "aircraft": "Boeing 737",
+            "status": "По расписанию",
+            "gate": "C12",
+            "terminal": "C"
+        },
+        "SU4001": {
+            "route": "Москва - Екатеринбург",
+            "airline": "Аэрофлот",
+            "departure_time": "08:30",
+            "arrival_time": "10:30",
+            "duration": "2ч 00м",
+            "aircraft": "Airbus A320",
+            "status": "По расписанию",
+            "gate": "A15",
+            "terminal": "D"
+        },
+        "SU4002": {
+            "route": "Екатеринбург - Москва",
+            "airline": "Аэрофлот",
+            "departure_time": "11:30",
+            "arrival_time": "13:30",
+            "duration": "2ч 00м",
+            "aircraft": "Airbus A320",
+            "status": "Задержка 20 минут",
+            "gate": "B08",
+            "terminal": "C"
+        },
+        "SU5001": {
+            "route": "Москва - Новосибирск",
+            "airline": "Аэрофлот",
+            "departure_time": "09:30",
+            "arrival_time": "13:30",
+            "duration": "4ч 00м",
+            "aircraft": "Boeing 777",
+            "status": "По расписанию",
+            "gate": "C15",
+            "terminal": "D"
+        },
+        "SU5002": {
+            "route": "Новосибирск - Москва",
+            "airline": "Аэрофлот",
+            "departure_time": "14:30",
+            "arrival_time": "18:30",
+            "duration": "4ч 00м",
+            "aircraft": "Boeing 777",
+            "status": "По расписанию",
+            "gate": "A10",
+            "terminal": "C"
+        }
+    },
+    "status_types": {
+        "scheduled": "По расписанию",
+        "delayed": "Задержка",
+        "cancelled": "Отменен",
+        "boarding": "На посадке",
+        "departed": "Вылетел",
+        "arrived": "Прибыл"
+    },
+    "status_icons": {
+        "scheduled": "🟢",
+        "delayed": "🟡",
+        "cancelled": "🔴",
+        "boarding": "🟡",
+        "departed": "🟢",
+        "arrived": "🟢"
+    }
+} 

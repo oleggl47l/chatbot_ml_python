@@ -1,0 +1,359 @@
+import asyncio
+import json
+import logging
+import os
+import random
+from uuid import uuid4
+
+from dotenv import load_dotenv
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    filters,
+    ContextTypes
+)
+
+from handlers.buttons import ButtonHandler
+from handlers.commands import CommandHandler as CustomCommandHandler
+from handlers.speech import SpeechHandler
+from handlers.voice import VoiceHandler
+from nlp.casual_dialog import CasualDialogHandler
+from nlp.intent_model import IntentClassifier
+from nlp.ner import extract_city, replace_placeholders
+from nlp.preprocessor import preprocess, lemmatize
+from scenarios.ads import get_random_ad
+from scenarios.dialogue_engine import load_dialogues, find_best_response
+from services.flight_info import FlightInfo
+from services.flight_status import FlightStatus
+from services.ticket_booking import TicketBooking
+from utils.spell_check import correct_text
+from utils.tts import get_tts_keyboard, tts_callback
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+print("\n=== Инициализация бота ===")
+intent_model = IntentClassifier()
+intent_model.train()
+print("Модель обучена")
+
+dialogues = load_dialogues()
+flight_info = FlightInfo()
+speech_handler = SpeechHandler()
+ticket_booking = TicketBooking()
+flight_status = FlightStatus()
+button_handler = ButtonHandler(ticket_booking, flight_status)
+voice_handler = VoiceHandler(speech_handler)
+command_handler = CustomCommandHandler(flight_info, flight_status, ticket_booking, button_handler)
+print("=== Инициализация завершена ===\n")
+
+
+class TelegramBot:
+    def __init__(self):
+        self.intent_classifier = intent_model
+        self.casual_handler = CasualDialogHandler()
+        self.flight_info = flight_info
+        self.dialogues = dialogues
+
+    def load_dialogues(self):
+        with open('data/dialogues.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+    def get_intent_response(self, intent: str, text: str) -> str:
+        """Получает ответ для интента с учетом извлеченного города"""
+        if intent not in self.intent_classifier.intents:
+            return None
+
+        city = extract_city(text)
+        if city:
+            city = self.flight_info.normalize_city(city)
+            logger.info(f"Нормализация города: {city}")
+
+        responses = self.intent_classifier.intents[intent]['responses']
+        response = random.choice(responses)
+
+        if '<CITY>' in response and not city:
+            return "В какой город вы хотите полететь?"
+
+        if city:
+            response = replace_placeholders(response, city)
+
+        return response
+
+    def handle_message(self, text: str) -> str:
+        """Обрабатывает входящее сообщение"""
+        logger.info(f"Получено сообщение: {text}")
+
+        casual_response, should_add_ad = self.casual_handler.get_response(text)
+        if casual_response:
+            logger.info("Найден casual диалог")
+            return casual_response
+
+        intent = self.intent_classifier.predict(text)
+        logger.info(f"Определенный интент: {intent}")
+
+        if intent:
+            response = self.get_intent_response(intent, text)
+            if response:
+                return response
+
+        return random.choice(self.dialogues['fallback_responses'])
+
+bot = TelegramBot()
+
+def get_joke():
+    with open('data/intents.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+        for intent in data['intents']:
+            if intent['tag'] == 'joke':
+                return random.choice(intent['responses'])
+    return "Извините, у меня закончились шутки 😅"
+
+
+def get_menu_keyboard():
+    """Создает клавиатуру с основными командами"""
+    keyboard = [
+        [KeyboardButton("✈️ Бронирование"), KeyboardButton("📊 Статус рейса")],
+        [KeyboardButton("❓ Помощь"), KeyboardButton("ℹ️ Информация")]
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /start"""
+    user = update.effective_user
+    await update.message.reply_text(
+        f"👋 Привет, {user.first_name}!\n\n"
+        "Я бот для бронирования авиабилетов. "
+        "Я могу помочь вам с поиском и бронированием билетов, "
+        "проверкой статуса рейсов и другой информацией.\n\n"
+        "Используйте меню для навигации или введите /help для получения списка команд.",
+        reply_markup=button_handler.get_menu_keyboard()
+    )
+
+
+async def help_command(update, context):
+    text = (
+        "Я могу помочь вам с:\n"
+        "• Поиском и бронированием билетов (/book)\n"
+        "• Поиском информации по выбранному рейсу (/status)\n"
+        "• Информацией о рейсах и ценах\n"
+        "• Правилами провоза багажа\n"
+        "• Онлайн-регистрацией\n"
+        "• Погодой в городах\n\n"
+        "Вы можете писать мне текстом или отправлять голосовые сообщения!"
+    )
+    await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
+
+
+async def book_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /book"""
+    user_id = update.effective_user.id
+
+    ticket_booking.booking_data[user_id] = {
+        "step": "select_destination",
+        "data": {}
+    }
+
+    message = "✈️ Выберите направление:"
+    keyboard = ticket_booking.get_booking_keyboard("select_destination", user_id)
+    await update.message.reply_text(message, reply_markup=keyboard)
+
+
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик нажатий на кнопки"""
+    await button_handler.handle_callback(update, context)
+
+
+async def handle_voice(update, context):
+    """Обрабатывает голосовые сообщения"""
+    text = await voice_handler.handle_voice(update, context)
+    if text and not text.startswith("Ошибка"):
+        await handle_message(update, context, text)
+
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE, text=None):
+    """Обработчик текстовых сообщений"""
+    if text is None:
+        text = update.message.text
+    user_id = update.effective_user.id
+
+    if text == "✈️ Бронирование":
+        await book_command(update, context)
+        return
+    elif text == "📊 Статус рейса":
+        await status_command(update, context)
+        return
+    elif text == "❓ Помощь":
+        await help_command(update, context)
+        return
+    elif text == "ℹ️ Информация":
+        text = (
+            "ℹ️ Информация о боте:\n\n"
+            "• Бронирование билетов\n"
+            "• Проверка статуса рейсов\n"
+            "• Информация о багаже\n"
+            "• Поддержка голосовых сообщений\n"
+            "• Умный поиск по разным запросам"
+        )
+        await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
+
+        return
+
+    if user_id in ticket_booking.booking_data:
+        booking = ticket_booking.booking_data[user_id]
+        if booking["step"] == "enter_passenger":
+            message, keyboard = ticket_booking.process_passenger_data(user_id, text)
+            if keyboard:
+                await update.message.reply_text(message, reply_markup=keyboard)
+            else:
+                await update.message.reply_text(message)
+            return
+
+    city = extract_city(text)
+    if city:
+        logger.info(f"Извлеченный город: {city}")
+        city = flight_info.normalize_city(city)
+        logger.info(f"Нормализованный город: {city}")
+
+        cleaned = preprocess(text)
+        corrected = correct_text(cleaned)
+        lemmatized = lemmatize(corrected)
+
+        intent = intent_model.predict(lemmatized)
+        logger.info(f"Определенный интент: {intent}")
+
+        if intent == "weather_query":
+            weather_info = flight_info.format_weather_info(city)
+            await update.message.reply_text(weather_info, reply_markup=get_tts_keyboard(weather_info))
+            return
+        elif intent == "flight_search":
+            route_info = flight_info.format_route_info("Москва", city)
+            await update.message.reply_text(route_info, reply_markup=get_tts_keyboard(route_info))
+            return
+        elif intent == "flight_duration":
+            route_info = flight_info.format_route_info("Москва", city)
+            await update.message.reply_text(route_info, reply_markup=get_tts_keyboard(route_info))
+            return
+        elif intent == "airport_info":
+            airport_info = flight_info.format_airport_info(city)
+            await update.message.reply_text(airport_info, reply_markup=get_tts_keyboard(airport_info))
+            return
+        elif intent == "best_time_to_visit":
+            weather_info = flight_info.format_weather_info(city)
+            text = f"Лучшее время для посещения {city}:\n{weather_info}"
+            await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
+            return
+        elif intent == "flight_status":
+            text = "Для проверки статуса рейса, пожалуйста, используйте /status."
+            await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
+            return
+        elif intent == "luggage_info":
+            baggage_info = flight_info.format_baggage_info()
+            await update.message.reply_text(baggage_info, reply_markup=get_tts_keyboard(baggage_info))
+            return
+        elif intent == "joke":
+            await update.message.reply_text(get_joke(), reply_markup=get_tts_keyboard(get_joke()))
+
+            return
+
+    if "парковка" in text.lower() or "стоянка" in text.lower():
+        text = ("Информация о парковке в аэропортах:\n"
+                "• Краткосрочная парковка: 300₽/час\n"
+                "• Долгосрочная парковка: 1000₽/сутки\n"
+                "• Бесплатная парковка: первые 15 минут\n"
+                "• VIP-парковка: 5000₽/сутки\n\n"
+                "Для уточнения информации по конкретному аэропорту, укажите город.")
+        await update.message.reply_text(text, reply_markup=get_tts_keyboard(text))
+
+        return
+
+    casual_handler = CasualDialogHandler()
+    casual_response, should_add_ad, keyboard = casual_handler.get_response(text)
+    if casual_response:
+        if keyboard:
+            await update.message.reply_text(casual_response, reply_markup=keyboard)
+        else:
+            await update.message.reply_text(casual_response)
+        return
+
+    response = find_best_response(text, dialogues)
+    if response and response != "Не совсем понял вопрос. Можете переформулировать?":
+        await update.message.reply_text(
+            response,
+            reply_markup=get_tts_keyboard(response)
+        )
+        return
+
+    if not city:
+        cleaned = preprocess(text)
+        corrected = correct_text(cleaned)
+        lemmatized = lemmatize(corrected)
+
+        intent = intent_model.predict(lemmatized)
+        logger.info(f"Определенный интент: {intent}")
+
+        if intent == "buy_ticket":
+            await book_command(update, context)
+        elif intent == "luggage_info":
+            baggage_info = flight_info.format_baggage_info()
+            await update.message.reply_text(baggage_info)
+        elif intent == "business_class":
+            baggage_info = flight_info.format_baggage_info("business")
+            await update.message.reply_text(baggage_info, reply_markup=get_tts_keyboard(baggage_info))
+        elif intent == "help":
+            await help_command(update, context)
+
+        response = bot.get_intent_response(intent, text)
+        if response:
+            await update.message.reply_text(response, reply_markup=get_tts_keyboard(response))
+            return
+
+        fallback_response = find_best_response(text, dialogues)
+        if fallback_response and fallback_response != "Не совсем понял вопрос. Можете переформулировать?":
+            await update.message.reply_text(fallback_response, reply_markup=get_tts_keyboard(fallback_response))
+            return
+
+        # Последний fallback
+        default_fallback = random.choice([
+            "Извините, я не совсем понял ваш вопрос. Можете переформулировать?",
+            "Попробуйте немного иначе сформулировать запрос.",
+            "Я пока не знаю, как на это ответить. Но учусь каждый день! 🙂"
+        ])
+        await update.message.reply_text(default_fallback, reply_markup=get_tts_keyboard(default_fallback))
+
+    if random.random() > 0.8:
+        await asyncio.sleep(1)
+        await update.message.reply_text(get_random_ad())
+
+
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /status"""
+    user_id = update.effective_user.id
+    message = "✈️ Выберите рейс для просмотра информации:"
+    keyboard = flight_status.get_flight_keyboard(user_id)
+    await update.message.reply_text(message, reply_markup=keyboard)
+
+
+def run_bot():
+    load_dotenv()
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not token:
+        raise ValueError("TELEGRAM_BOT_TOKEN не найден в .env файле!")
+
+    application = Application.builder().token(token).build()
+    application.add_handler(CommandHandler("start", command_handler.start_command))
+    application.add_handler(CommandHandler("help", command_handler.help_command))
+    application.add_handler(CommandHandler("book", command_handler.book_command))
+    application.add_handler(CommandHandler("status", status_command))
+    application.add_handler(CallbackQueryHandler(tts_callback, pattern="^tts\\|"))
+    application.add_handler(CallbackQueryHandler(button_handler.handle_callback))
+    application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_voice))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    print("Бот запущен...")
+
+    application.run_polling()
